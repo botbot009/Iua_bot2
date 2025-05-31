@@ -1,0 +1,105 @@
+
+import os
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+from flask import Flask
+from threading import Thread
+
+# 🔐 التوكن الخاص بك
+BOT_TOKEN = "7562563139:AAHyVNiD835GHB6Erhkc_v7chTaNKaticvg"
+
+# 🔄 إعداد خادم Flask لتشغيل البوت باستمرار
+app_flask = Flask('')
+
+@app_flask.route('/')
+def home():
+    return "Bot is alive!"
+
+def run():
+    app_flask.run(host='0.0.0.0', port=8080)
+
+def keep_alive():
+    Thread(target=run).start()
+
+# 🗂️ المواد الدراسية لكل سمستر
+semester_subjects = {
+    "السمستر السابع": [
+        "هندسة طرق 1", "هيدروليكا 1", "تصميم خرسانة 2", "حساب كميات",
+        "ميكانيكيا تربة 2", "تصميم فولاذ 1", "اقتصاد هندسي",
+        "فكر اسلامي", "واقع اسلامي"
+    ],
+    "السمستر الثامن": [
+        "هندسة طرق 2", "هيدروليكا 2", "تصميم خرسانة 3", "إدارة تشييد",
+        "تصميم فولاذ 2", "هندسة بيئية", "دراسات قرآنية"
+    ]
+}
+
+user_state = {}
+
+# ✅ أمر /start
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [["السمستر السابع", "السمستر الثامن"]]
+    reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
+    await update.message.reply_text("👋 مرحبًا! اختر السمستر:", reply_markup=reply_markup)
+
+# 💬 التعامل مع الرسائل النصية
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    user_id = update.message.from_user.id
+
+    if text in semester_subjects:
+        user_state[user_id] = {"semester": text}
+        keyboard = [[subject] for subject in semester_subjects[text]]
+        reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
+        await update.message.reply_text("📚 اختر المادة:", reply_markup=reply_markup)
+
+    elif user_id in user_state and "semester" in user_state[user_id] and "subject" not in user_state[user_id]:
+        user_state[user_id]["subject"] = text
+        await update.message.reply_text(f"✅ اخترت المادة: {text}. أرسل الآن الملف المراد رفعه.\n\n📂 أو اختر من الملفات الموجودة:")
+
+        semester_folder = "semester7" if "السابع" in user_state[user_id]["semester"] else "semester8"
+        subject_folder = user_state[user_id]["subject"]
+        full_path = os.path.join(semester_folder, subject_folder)
+        os.makedirs(full_path, exist_ok=True)
+
+        files = os.listdir(full_path)
+        if files:
+            for f in files:
+                file_path = os.path.join(full_path, f)
+                await update.message.reply_document(document=open(file_path, "rb"), caption=f)
+        else:
+            await update.message.reply_text("📭 لا توجد ملفات حالياً لهذه المادة.")
+
+# 📁 استقبال الملفات وحفظها
+async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.message.from_user.id
+
+    if user_id not in user_state or "semester" not in user_state[user_id] or "subject" not in user_state[user_id]:
+        await update.message.reply_text("❗️يرجى أولاً اختيار السمستر والمادة.")
+        return
+
+    file = update.message.document
+    file_name = file.file_name
+
+    semester_folder = "semester7" if "السابع" in user_state[user_id]["semester"] else "semester8"
+    subject_folder = user_state[user_id]["subject"]
+    save_path = os.path.join(semester_folder, subject_folder)
+    os.makedirs(save_path, exist_ok=True)
+
+    file_path = os.path.join(save_path, file_name)
+    await file.download_to_drive(file_path)
+
+    await update.message.reply_text(f"📥 تم حفظ الملف: {file_name} ✅")
+
+# 🚀 تشغيل البوت
+def main():
+    keep_alive()
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
+    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
+    print("🤖 Bot is running...")
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
