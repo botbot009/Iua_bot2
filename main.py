@@ -49,9 +49,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # إذا اختار المادة
     elif any(text in subjects for subjects in semesters.values()):
         if user_id in user_state and "semester" in user_state[user_id]:
-            user_state[user_id]["subject"] = text
-            await update.message.reply_text(f"✅ اخترت المادة: {text}. أرسل الآن الملف المراد رفعه.")
-        else:
+user_state[user_id]["subject"] = text
+await update.message.reply_text(f"✅ اخترت المادة: {text}. أرسل الآن الملف المراد رفعه.\n\n📂 أو اختر من الملفات الموجودة:")
+
+# عرض الملفات الحالية
+semester_folder = "semester7" if "السابع" in user_state[user_id]["semester"] else "semester8"
+subject_folder = user_state[user_id]["subject"]
+full_path = os.path.join(semester_folder, subject_folder)
+
+files = os.listdir(full_path)
+if files:
+    for f in files:
+        file_path = os.path.join(full_path, f)
+        await update.message.reply_document(document=open(file_path, "rb"), caption=f)
+else:
+    await update.message.reply_text("📭 لا توجد ملفات حالياً لهذه المادة.")        else:
             await update.message.reply_text("❗ يرجى أولاً اختيار السمستر.")
     # إذا أرسل ملف
     elif update.message.document:
@@ -80,4 +92,20 @@ if __name__ == '__main__':
     app.add_handler(MessageHandler(filters.ALL, handle_message))
 
     print("🤖 Bot is running...")
+    from flask import Flask
+from threading import Thread
+
+app_flask = Flask('')
+
+@app_flask.route('/')
+def home():
+    return "Bot is alive!"
+
+def run():
+    app_flask.run(host='0.0.0.0', port=8080)
+
+def keep_alive():
+    Thread(target=run).start()
+
+keep_alive()
     app.run_polling()
