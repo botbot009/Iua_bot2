@@ -85,7 +85,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
 
-    if user_id not in user_state or "semester" not in user_state[user_id] or "subject" not in user_state[user_state[user_id]]:
+    if user_id not in user_state or "semester" not in user_state[user_id] or "subject" not in user_state[user_id]:
         await update.message.reply_text("❗️يرجى أولاً اختيار السمستر والمادة.")
         return
 
