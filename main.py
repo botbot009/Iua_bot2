@@ -4,7 +4,7 @@ import os
 import asyncio
 
 # إعدادات البوت
-TOKEN = os.environ.get("8034562422:AAEWZ1Iz0PlwtMs-eN1RoxbqSzkiQod8kkk")
+TOKEN = os.environ.get("BOT_TOKEN")
 
 # بيانات الفصول
 semester_data = {
