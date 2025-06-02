@@ -39,7 +39,7 @@ if __name__ == '__main__':
     from flask import Flask, request
 
     app = Flask(__name__)
-    TELEGRAM_TOKEN = os.environ.get("7985925166:AAG_BHkZZE3gbb-FoQ-reVuQM-SdH-EzctY")
+    TELEGRAM_TOKEN = os.environ.get("bot_token")
     WEBHOOK_URL = os.environ.get("https://iuabot2-production.up.railway.app/webhook")  # مثال: https://your-app-name.up.railway.app/webhook
 
     telegram_app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
