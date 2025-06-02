@@ -5,8 +5,8 @@ from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandle
 import os
 
 app = Flask(__name__)
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
+TELEGRAM_TOKEN = os.environ.get("7863548329:AAGp1hEWdamJ0aKeRJVEWKyPAt1oUUHC_Hw")
+WEBHOOK_URL = os.environ.get("https://iuabot2-production.up.railway.app/webhook")
 
 telegram_app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
