@@ -1,102 +1,62 @@
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 import os
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
-from flask import Flask
-from threading import Thread
 
-BOT_TOKEN = "7863548329:AAGp1hEWdamJ0aKeRJVEWKyPAt1oUUHC_Hw"
-
-user_state = {}
-
-semester_subjects = {
-    "السمستر السابع": [
-        "هندسة طرق 1", "هيدروليكا 1", "تصميم خرسانة 2", "حساب كميات",
-        "ميكانيكيا تربة 2", "تصميم فولاذ 1", "اقتصاد هندسي",
-        "فكر اسلامي", "واقع اسلامي"
+# مواد الفصول
+semester_data = {
+    "السابع": [
+        "اقتصاد هندسي", "تصميم خرسانة 2", "تصميم فولاذ 1", "حساب كميات", "فكر إسلامي",
+        "ميكانيكا تربة 2", "هندسة طرق 1", "هيدروليكا 1", "واقع إسلامي"
     ],
-    "السمستر الثامن": [
-        "هندسة طرق 2", "هيدروليكا 2", "تصميم خرسانة 3", "إدارة تشييد",
-        "تصميم فولاذ 2", "هندسة بيئية", "دراسات قرآنية"
+    "الثامن": [
+        "إدارة تشييد", "تصميم خرسانة 3", "تصميم فولاذ 2", "دراسات قرآنية",
+        "هندسة بيئية", "هندسة طرق 2", "هيدروليكا 2"
     ]
 }
 
-# الرد على /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [["السمستر السابع", "السمستر الثامن"]]
-    markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=True)
-    await update.message.reply_text("👋 اختر السمستر:", reply_markup=markup)
+    keyboard = [
+        [InlineKeyboardButton("📚 الفصل السابع", callback_data='السابع')],
+        [InlineKeyboardButton("📘 الفصل الثامن", callback_data='الثامن')]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text("اختر الفصل الدراسي:", reply_markup=reply_markup)
 
-# التعامل مع الرسائل النصية
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text
-    user_id = update.message.from_user.id
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
 
-    if text in semester_subjects:
-        user_state[user_id] = {"semester": text}
-        keyboard = [[s] for s in semester_subjects[text]]
-        markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=True)
-        await update.message.reply_text("📘 اختر المادة:", reply_markup=markup)
+    semester = query.data
+    subjects = semester_data.get(semester, [])
+    keyboard = [[InlineKeyboardButton(subject, callback_data="none")] for subject in subjects]
+    reply_markup = InlineKeyboardMarkup(keyboard)
 
-    elif user_id in user_state and "subject" not in user_state[user_id]:
-        user_state[user_id]["subject"] = text
-        await update.message.reply_text("📎 أرسل الملف الذي تريد رفعه.")
+    await query.edit_message_text(text=f"📖 مواد الفصل {semester}:", reply_markup=reply_markup)
 
-        sem_folder = "semester7" if "السابع" in user_state[user_id]["semester"] else "semester8"
-        subject = user_state[user_id]["subject"]
-        full_path = os.path.join(sem_folder, subject)
-        os.makedirs(full_path, exist_ok=True)
+# ========= تشغيل Webhook ===========
+if __name__ == '__main__':
+    from telegram.ext import Application
+    from flask import Flask, request
 
-        files = os.listdir(full_path)
-        if files:
-            await update.message.reply_text("📂 ملفات سابقة:")
-            for file in files:
-                with open(os.path.join(full_path, file), "rb") as f:
-                    await update.message.reply_document(document=f, caption=file)
-        else:
-            await update.message.reply_text("📭 لا توجد ملفات حالياً.")
+    app = Flask(__name__)
+    TELEGRAM_TOKEN = os.environ.get("7863548329:AAGp1hEWdamJ0aKeRJVEWKyPAt1oUUHC_Hw")
+    WEBHOOK_URL = os.environ.get("bott-production-1fa6.up.railway.app/webhook")  # مثال: https://your-app-name.up.railway.app/webhook
 
-# رفع الملفات
-async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
+    telegram_app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    telegram_app.add_handler(CommandHandler("start", start))
+    telegram_app.add_handler(CallbackQueryHandler(button_handler))
 
-    if user_id not in user_state or "subject" not in user_state[user_id]:
-        await update.message.reply_text("❗️اختر المادة أولاً باستخدام /start")
-        return
+    @app.route("/webhook", methods=["POST"])
+    def webhook():
+        telegram_app.update_queue.put_nowait(Update.de_json(request.get_json(force=True), telegram_app.bot))
+        return "ok"
 
-    document = update.message.document
-    file_name = document.file_name
+    @app.route("/")
+    def home():
+        return "البوت شغال باستخدام Webhook 🚀"
 
-    sem_folder = "semester7" if "السابع" in user_state[user_id]["semester"] else "semester8"
-    subject = user_state[user_id]["subject"]
-    save_dir = os.path.join(sem_folder, subject)
-    os.makedirs(save_dir, exist_ok=True)
+    @app.before_first_request
+    def setup_webhook():
+        telegram_app.bot.set_webhook(url=WEBHOOK_URL)
 
-    file_path = os.path.join(save_dir, file_name)
-    await document.download_to_drive(file_path)
-    await update.message.reply_text(f"✅ تم حفظ الملف: {file_name}")
-
-# keep alive باستخدام Flask
-app_flask = Flask("")
-
-@app_flask.route("/")
-def home():
-    return "✅ البوت شغال"
-
-def run():
-    app_flask.run(host="0.0.0.0", port=8080)
-
-def keep_alive():
-    Thread(target=run).start()
-
-# التشغيل الفعلي
-def start_bot():
-    keep_alive()
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.Document.ALL, handle_file))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    print("🤖 البوت يعمل الآن...")
-    app.run_polling()
-
-if __name__ == "__main__":
-    start_bot()
+    app.run(host="0.0.0.0", port=8000)
