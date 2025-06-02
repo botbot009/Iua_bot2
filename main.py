@@ -62,7 +62,8 @@ def home():
 
 @app.before_first_request
 def set_webhook():
-    telegram_app.bot.set_webhook(url=WEBHOOK_URL)
+    if WEBHOOK_URL:  # ✅ تحقق من وجود الرابط قبل التعيين
+        telegram_app.bot.set_webhook(url=WEBHOOK_URL)
 
 if __name__ == "__main__":
     app.run(port=8000, host="0.0.0.0")
