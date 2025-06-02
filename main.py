@@ -1,7 +1,8 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
+import os
 
-# المواد لكل فصل
+# بيانات المواد حسب الفصول
 semester_data = {
     "السابع": [
         "اقتصاد هندسي", "تصميم خرسانة 2", "تصميم فولاذ 1", "حساب كميات", "فكر إسلامي",
@@ -13,30 +14,54 @@ semester_data = {
     ]
 }
 
+# عند بدء البوت
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📚 الفصل السابع", callback_data='السابع')],
         [InlineKeyboardButton("📘 الفصل الثامن", callback_data='الثامن')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("اختر الفصل الدراسي:", reply_markup=reply_markup)
+    await update.message.reply_text("📖 اختر الفصل الدراسي:", reply_markup=reply_markup)
 
+# عند الضغط على زر
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    data = query.data
 
-    semester = query.data
-    subjects = semester_data.get(semester, [])
-    keyboard = [[InlineKeyboardButton(subject, callback_data="none")] for subject in subjects]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    if data in semester_data:
+        subjects = semester_data[data]
+        keyboard = [[InlineKeyboardButton(subject, callback_data="none")] for subject in subjects]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(f"📘 مواد الفصل {data}:", reply_markup=reply_markup)
+    else:
+        await query.edit_message_text("📌 سيتم إضافة المحتوى لاحقًا.")
 
-    await query.edit_message_text(text=f"📖 مواد الفصل {semester}:", reply_markup=reply_markup)
-
+# ===== Webhook & سيرفر Flask =====
 if __name__ == '__main__':
-    import os
-    TOKEN = os.getenv("7985925166:AAG_BHkZZE3gbb-FoQ-reVuQM-SdH-EzctY")  # ضع التوكن هنا أو استخدم متغير بيئة
+    from flask import Flask, request
+    from telegram.ext import Application
 
-    app = ApplicationBuilder().token(TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(button_handler))
-    app.run_polling()
+    app = Flask(__name__)
+
+    TELEGRAM_TOKEN = os.environ.get("BOT_TOKEN")  # التوكن من environment
+    WEBHOOK_URL = os.environ.get("WEBHOOK_URL")   # الرابط من environment
+
+    telegram_app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    telegram_app.add_handler(CommandHandler("start", start))
+    telegram_app.add_handler(CallbackQueryHandler(button_handler))
+
+    @app.route("/webhook", methods=["POST"])
+    def webhook():
+        telegram_app.update_queue.put_nowait(Update.de_json(request.get_json(force=True), telegram_app.bot))
+        return "ok"
+
+    @app.route("/")
+    def home():
+        return "✅ البوت شغال باستخدام Webhook"
+
+    @app.before_first_request
+    def set_webhook():
+        telegram_app.bot.set_webhook(url=WEBHOOK_URL)
+
+    app.run(host="0.0.0.0", port=8000)
