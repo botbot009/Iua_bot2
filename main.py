@@ -70,8 +70,8 @@ if __name__ == '__main__':
     from flask import Flask, request
 
     app = Flask(__name__)
-    TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")  # تأكد من تعيينها في Railway
-    WEBHOOK_URL = os.environ.get("WEBHOOK_URL")        # تأكد من تعيينها في Railway
+    TELEGRAM_TOKEN = os.environ.get("7863548329:AAGp1hEWdamJ0aKeRJVEWKyPAt1oUUHC_Hw")  # تأكد من تعيينها في Railway
+    WEBHOOK_URL = os.environ.get("https://bott-production-1fa6.up.railway.app/webhook")        # تأكد من تعيينها في Railway
 
     telegram_app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     telegram_app.add_handler(CommandHandler("start", start))
