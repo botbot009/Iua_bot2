@@ -1,8 +1,7 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
-import os
 
-# مواد الفصول
+# المواد لكل فصل
 semester_data = {
     "السابع": [
         "اقتصاد هندسي", "تصميم خرسانة 2", "تصميم فولاذ 1", "حساب كميات", "فكر إسلامي",
@@ -33,30 +32,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.edit_message_text(text=f"📖 مواد الفصل {semester}:", reply_markup=reply_markup)
 
-# ========= تشغيل Webhook ===========
 if __name__ == '__main__':
-    from telegram.ext import Application
-    from flask import Flask, request
+    import os
+    TOKEN = os.getenv("BOT_TOKEN")  # ضع التوكن هنا أو استخدم متغير بيئة
 
-    app = Flask(__name__)
-    TELEGRAM_TOKEN = os.environ.get("bot_token")
-    WEBHOOK_URL = os.environ.get("https://iuabot2-production.up.railway.app/webhook")  # مثال: https://your-app-name.up.railway.app/webhook
-
-    telegram_app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-    telegram_app.add_handler(CommandHandler("start", start))
-    telegram_app.add_handler(CallbackQueryHandler(button_handler))
-
-    @app.route("/webhook", methods=["POST"])
-    def webhook():
-        telegram_app.update_queue.put_nowait(Update.de_json(request.get_json(force=True), telegram_app.bot))
-        return "ok"
-
-    @app.route("/")
-    def home():
-        return "البوت شغال باستخدام Webhook 🚀"
-
-    @app.before_first_request
-    def setup_webhook():
-        telegram_app.bot.set_webhook(url=WEBHOOK_URL)
-
-    app.run(host="0.0.0.0", port=8000)
+    app = ApplicationBuilder().token(TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(button_handler))
+    app.run_polling()
