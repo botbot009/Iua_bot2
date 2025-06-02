@@ -34,7 +34,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 if __name__ == '__main__':
     import os
-    TOKEN = os.getenv("BOT_TOKEN")  # ضع التوكن هنا أو استخدم متغير بيئة
+    TOKEN = os.getenv("7985925166:AAG_BHkZZE3gbb-FoQ-reVuQM-SdH-EzctY")  # ضع التوكن هنا أو استخدم متغير بيئة
 
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
