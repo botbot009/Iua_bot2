@@ -14,6 +14,7 @@ semester_data = {
     ]
 }
 
+# دالة البداية
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📚 الفصل السابع", callback_data='السابع')],
@@ -22,16 +23,46 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("اختر الفصل الدراسي:", reply_markup=reply_markup)
 
+# دالة الفيديوهات للاقتصاد
+async def show_eco_videos(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [
+        [InlineKeyboardButton("🎞️ Lecture 2", url="https://t.me/c/2646509467/4")],
+        [InlineKeyboardButton("🎞️ Lecture 3", url="https://t.me/c/2646509467/5")],
+        [InlineKeyboardButton("🎞️ Lecture 4", url="https://t.me/c/2646509467/6")],
+        [InlineKeyboardButton("🎞️ Lecture 5", url="https://t.me/c/2646509467/7")],
+        [InlineKeyboardButton("🎞️ Lecture 6", url="https://t.me/c/2646509467/9")],
+        [InlineKeyboardButton("🎞️ Lecture 7", url="https://t.me/c/2646509467/8")],
+        [InlineKeyboardButton("🔙 رجوع", callback_data="اقتصاد هندسي")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.callback_query.edit_message_text("🎥 فيديوهات مادة الاقتصاد الهندسي:", reply_markup=reply_markup)
+
+# دالة اختيار المواد والأزرار الفرعية
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    data = query.data
 
-    semester = query.data
-    subjects = semester_data.get(semester, [])
-    keyboard = [[InlineKeyboardButton(subject, callback_data="none")] for subject in subjects]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    if data == "السابع" or data == "الثامن":
+        subjects = semester_data.get(data, [])
+        keyboard = [[InlineKeyboardButton(f"📘 {subject}", callback_data=subject)] for subject in subjects]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(f"📖 مواد الفصل {data}:", reply_markup=reply_markup)
 
-    await query.edit_message_text(text=f"📖 مواد الفصل {semester}:", reply_markup=reply_markup)
+    elif data == "اقتصاد هندسي":
+        keyboard = [
+            [InlineKeyboardButton("📄 ملفات", callback_data="eco_files")],
+            [InlineKeyboardButton("🎥 فيديوهات", callback_data="eco_videos")],
+            [InlineKeyboardButton("🔙 رجوع", callback_data="السابع")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text("📚 اختر نوع المحتوى لمادة الاقتصاد الهندسي:", reply_markup=reply_markup)
+
+    elif data == "eco_videos":
+        await show_eco_videos(update, context)
+
+    elif data == "eco_files":
+        await query.edit_message_text("📄 ملفات الاقتصاد الهندسي:\n\n- Lecture 1 PDF\n- Lecture 2 PDF\n- Lecture 3 PDF\n(📌 سيتم التحديث لاحقًا)")
 
 # ========= تشغيل Webhook ===========
 if __name__ == '__main__':
@@ -39,8 +70,8 @@ if __name__ == '__main__':
     from flask import Flask, request
 
     app = Flask(__name__)
-    TELEGRAM_TOKEN = os.environ.get("7863548329:AAGp1hEWdamJ0aKeRJVEWKyPAt1oUUHC_Hw")
-    WEBHOOK_URL = os.environ.get("https://bott-production-1fa6.up.railway.app/webhook")  # مثال: https://your-app-name.up.railway.app/webhook
+    TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")  # تأكد من تعيينها في Railway
+    WEBHOOK_URL = os.environ.get("WEBHOOK_URL")        # تأكد من تعيينها في Railway
 
     telegram_app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     telegram_app.add_handler(CommandHandler("start", start))
@@ -53,7 +84,7 @@ if __name__ == '__main__':
 
     @app.route("/")
     def home():
-        return "البوت شغال باستخدام Webhook 🚀"
+        return "✅ البوت شغال باستخدام Webhook"
 
     @app.before_first_request
     def setup_webhook():
