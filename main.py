@@ -1,13 +1,10 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 import os
-from flask import Flask, request
+import asyncio
 
 # إعدادات البوت
 TOKEN = os.environ.get("BOT_TOKEN")
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
-
-app = Flask(__name__)
 
 # بيانات الفصول
 semester_data = {
@@ -43,27 +40,15 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await query.edit_message_text("📌 سيتم إضافة المحتوى لاحقًا.")
 
-# تطبيق البوت
-from telegram.ext import Application
-telegram_app = ApplicationBuilder().token(TOKEN).build()
-telegram_app.add_handler(CommandHandler("start", start))
-telegram_app.add_handler(CallbackQueryHandler(button_handler))
+# تشغيل البوت باستخدام polling
+async def main():
+    app = ApplicationBuilder().token(TOKEN).build()
 
-# إعداد Webhook
-@app.route("/webhook", methods=["POST"])
-def webhook():
-    update = Update.de_json(request.get_json(force=True), telegram_app.bot)
-    telegram_app.update_queue.put_nowait(update)
-    return "ok"
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(button_handler))
 
-@app.route("/")
-def home():
-    return "✅ البوت يعمل بنجاح"
-
-@app.before_first_request
-def set_webhook():
-    if WEBHOOK_URL:  # ✅ تحقق من وجود الرابط قبل التعيين
-        telegram_app.bot.set_webhook(url=WEBHOOK_URL)
+    print("✅ البوت يعمل باستخدام polling ...")
+    await app.run_polling()
 
 if __name__ == "__main__":
-    app.run(port=8080, host="0.0.0.0")
+    asyncio.run(main())
