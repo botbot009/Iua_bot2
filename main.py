@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
     app = Flask(__name__)
     TELEGRAM_TOKEN = os.environ.get("7863548329:AAGp1hEWdamJ0aKeRJVEWKyPAt1oUUHC_Hw")
-    WEBHOOK_URL = os.environ.get("https://bott-production-1fa6.up.railway.app/webhook")  # مثال: https://your-app-name.up.railway.app/webhook
+    WEBHOOK_URL = os.environ.get("https://iuabot2-production.up.railway.app/webhook")  # مثال: https://your-app-name.up.railway.app/webhook
 
     telegram_app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     telegram_app.add_handler(CommandHandler("start", start))
