@@ -5,8 +5,8 @@ from flask import Flask, request
 
 إعدادات البوت
 
-TOKEN = os.environ.get("BOT_TOKEN")
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
+TOKEN = os.environ.get("8034562422:AAEWZ1Iz0PlwtMs-eN1RoxbqSzkiQod8kkk")
+WEBHOOK_URL = os.environ.get("https://iuabot2-production.up.railway.app/webhook")
 
 app = Flask(name)
 
