@@ -44,7 +44,7 @@ if __name__ == '__main__':
 
     app = Flask(__name__)
 
-    TELEGRAM_TOKEN = "7863548329:AAGp1hEWdamJ0aKeRJVEWKyPAt1oUUHC_Hw"
+    TELEGRAM_TOKEN = "7863548329:AAGAGtIErlAR9iB9sMIRyXtYRUoaml0K3nI"
     WEBHOOK_URL = "https://iuabot2-bot.up.railway.app/webhook"
 
     telegram_app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
