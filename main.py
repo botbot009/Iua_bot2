@@ -1,74 +1,62 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 import os
-from flask import Flask, request
 
-إعدادات البوت
-
-TOKEN = os.environ.get("8034562422:AAEWZ1Iz0PlwtMs-eN1RoxbqSzkiQod8kkk")
-WEBHOOK_URL = os.environ.get("https://iuabot2-production.up.railway.app/webhook")
-
-app = Flask(name)
-
-بيانات الفصول
-
+# مواد الفصول
 semester_data = {
-"السابع": [
-"اقتصاد هندسي", "تصميم خرسانة 2", "تصميم فولاذ 1", "حساب كميات", "فكر إسلامي",
-"ميكانيكا تربة 2", "هندسة طرق 1", "هيدروليكا 1", "واقع إسلامي"
-],
-"الثامن": [
-"إدارة تشييد", "تصميم خرسانة 3", "تصميم فولاذ 2", "دراسات قرآنية",
-"هندسة بيئية", "هندسة طرق 2", "هيدروليكا 2"
-]
+    "السابع": [
+        "اقتصاد هندسي", "تصميم خرسانة 2", "تصميم فولاذ 1", "حساب كميات", "فكر إسلامي",
+        "ميكانيكا تربة 2", "هندسة طرق 1", "هيدروليكا 1", "واقع إسلامي"
+    ],
+    "الثامن": [
+        "إدارة تشييد", "تصميم خرسانة 3", "تصميم فولاذ 2", "دراسات قرآنية",
+        "هندسة بيئية", "هندسة طرق 2", "هيدروليكا 2"
+    ]
 }
 
-بدء المحادثة
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-keyboard = [
-[InlineKeyboardButton("📚 الفصل السابع", callback_data='السابع')],
-[InlineKeyboardButton("📘 الفصل الثامن", callback_data='الثامن')]
-]
-reply_markup = InlineKeyboardMarkup(keyboard)
-await update.message.reply_text("📖 اختر الفصل الدراسي:", reply_markup=reply_markup)
-
-الضغط على زر
+    keyboard = [
+        [InlineKeyboardButton("📚 الفصل السابع", callback_data='السابع')],
+        [InlineKeyboardButton("📘 الفصل الثامن", callback_data='الثامن')]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text("اختر الفصل الدراسي:", reply_markup=reply_markup)
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-query = update.callback_query
-await query.answer()
+    query = update.callback_query
+    await query.answer()
 
-data = query.data  
-if data in semester_data:  
-    buttons = [[InlineKeyboardButton(subject, callback_data="none")] for subject in semester_data[data]]  
-    markup = InlineKeyboardMarkup(buttons)  
-    await query.edit_message_text(f"📘 مواد الفصل {data}:", reply_markup=markup)  
-else:  
-    await query.edit_message_text("📌 سيتم إضافة المحتوى لاحقًا.")
+    semester = query.data
+    subjects = semester_data.get(semester, [])
+    keyboard = [[InlineKeyboardButton(subject, callback_data="none")] for subject in subjects]
+    reply_markup = InlineKeyboardMarkup(keyboard)
 
-تطبيق البوت
+    await query.edit_message_text(text=f"📖 مواد الفصل {semester}:", reply_markup=reply_markup)
 
-from telegram.ext import Application
-telegram_app = ApplicationBuilder().token(TOKEN).build()
-telegram_app.add_handler(CommandHandler("start", start))
-telegram_app.add_handler(CallbackQueryHandler(button_handler))
+# ========= تشغيل Webhook ===========
+if __name__ == '__main__':
+    from telegram.ext import Application
+    from flask import Flask, request
 
-إعداد Webhook
+    app = Flask(__name__)
+    TELEGRAM_TOKEN = os.environ.get("BOT_TOKEN")
+    WEBHOOK_URL = os.environ.get("WEBHOOK_URL")  # مثال: https://your-app-name.up.railway.app/webhook
 
-@app.route("/webhook", methods=["POST"])
-def webhook():
-update = Update.de_json(request.get_json(force=True), telegram_app.bot)
-telegram_app.update_queue.put_nowait(update)
-return "ok"
+    telegram_app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    telegram_app.add_handler(CommandHandler("start", start))
+    telegram_app.add_handler(CallbackQueryHandler(button_handler))
 
-@app.route("/")
-def home():
-return "✅ البوت يعمل بنجاح"
+    @app.route("/webhook", methods=["POST"])
+    def webhook():
+        telegram_app.update_queue.put_nowait(Update.de_json(request.get_json(force=True), telegram_app.bot))
+        return "ok"
 
-@app.before_first_request
-def set_webhook():
-telegram_app.bot.set_webhook(url=WEBHOOK_URL)
+    @app.route("/")
+    def home():
+        return "البوت شغال باستخدام Webhook 🚀"
 
-if name == "main":
-app.run(port=8000, host="0.0.0.0")
+    @app.before_first_request
+    def setup_webhook():
+        telegram_app.bot.set_webhook(url=WEBHOOK_URL)
+
+    app.run(host="0.0.0.0", port=8000)
