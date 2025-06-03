@@ -4,8 +4,8 @@ from flask import Flask, request
 import os
 import asyncio
 
-TOKEN = os.environ.get("BOT_TOKEN")
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
+TOKEN = os.environ.get("7888413063:AAFpDgT9WsbrP8kMcNkyQ61Xcp3ClhDMEFs")
+WEBHOOK_URL = os.environ.get("https://iuabot2-production.up.railway.app/webhook")
 
 semester_data = {
     "السابع": ["اقتصاد هندسي", "تصميم خرسانة 2", "تصميم فولاذ 1", "حساب كميات", "فكر إسلامي",
