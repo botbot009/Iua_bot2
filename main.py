@@ -1,11 +1,18 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
+import os
 from flask import Flask, request
-import os, asyncio
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+import asyncio
 
+# إعداد المتغيرات
 TOKEN = os.environ.get("BOT_TOKEN")
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
+WEBHOOK_URL = os.environ.get("WEBHOOK_URL")  # مثال: https://xxxxxx.up.railway.app/webhook
 
+# تحقق من التوكن
+if not TOKEN:
+    raise ValueError("❌ BOT_TOKEN غير موجود في المتغيرات البيئية")
+
+# بيانات المواد
 semester_data = {
     "السابع": [
         "اقتصاد هندسي", "تصميم خرسانة 2", "تصميم فولاذ 1", "حساب كميات", "فكر إسلامي",
@@ -17,34 +24,58 @@ semester_data = {
     ]
 }
 
-# Flask + Telegram bot
+# Flask app
 app = Flask(__name__)
-from telegram.ext import Application
-telegram_app = ApplicationBuilder().token(TOKEN).build()
-telegram_app.add_handler(CommandHandler("start", start := lambda u, c: u.message.reply_text("📖 اختر الفصل الدراسي:", reply_markup=InlineKeyboardMarkup([
-    [InlineKeyboardButton("📚 الفصل السابع", callback_data='السابع')],
-    [InlineKeyboardButton("📘 الفصل الثامن", callback_data='الثامن')]
-]))))
-telegram_app.add_handler(CallbackQueryHandler(lambda u, c: u.callback_query.edit_message_text(
-    f"📘 مواد الفصل {u.callback_query.data}:", 
-    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(s, callback_data="none")] for s in semester_data.get(u.callback_query.data, ["لا توجد بيانات"])])
-) if u.callback_query.data in semester_data else u.callback_query.edit_message_text("📌 سيتم إضافة المحتوى لاحقًا.")))
 
+# Telegram App
+telegram_app = Application.builder().token(TOKEN).build()
+
+# /start
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [
+        [InlineKeyboardButton("📚 الفصل السابع", callback_data='السابع')],
+        [InlineKeyboardButton("📘 الفصل الثامن", callback_data='الثامن')]
+    ]
+    await update.message.reply_text("📖 اختر الفصل الدراسي:", reply_markup=InlineKeyboardMarkup(keyboard))
+
+# عند اختيار المواد
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    data = query.data
+    if data in semester_data:
+        buttons = [[InlineKeyboardButton(subject, callback_data="none")] for subject in semester_data[data]]
+        await query.edit_message_text(f"📘 مواد الفصل {data}:", reply_markup=InlineKeyboardMarkup(buttons))
+    else:
+        await query.edit_message_text("📌 سيتم إضافة المحتوى لاحقًا.")
+
+# تسجيل الهاندلرات
+telegram_app.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(CallbackQueryHandler(button_handler))
+
+# Webhook endpoint
 @app.route("/webhook", methods=["POST"])
 def webhook():
     update = Update.de_json(request.get_json(force=True), telegram_app.bot)
     telegram_app.update_queue.put_nowait(update)
     return "ok"
 
-@app.route("/")
+# فحص البوت
+@app.route("/", methods=["GET"])
 def home():
-    return "✅ البوت يعمل الآن باستخدام Webhook!"
+    return "✅ البوت يعمل على Railway"
 
-async def set_webhook():
+# تشغيل البوت وتعيين الـ Webhook
+async def main():
     await telegram_app.bot.set_webhook(url=WEBHOOK_URL)
-    print("✅ Webhook تم تعيينه:", WEBHOOK_URL)
+    print("✅ Webhook set")
 
+# إعداد الـ webhook عند التشغيل
+@app.before_first_request
+def activate_webhook():
+    loop = asyncio.get_event_loop()
+    loop.create_task(main())
+
+# تشغيل الخادم
 if __name__ == "__main__":
-    asyncio.run(set_webhook())
-    app.run(port=8080, host="0.0.0.0")
-    
+    app.run(host="0.0.0.0", port=8000)
