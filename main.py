@@ -62,11 +62,13 @@ def webhook():
 def home():
     return "✅ البوت يعمل الآن باستخدام Webhook!"
 
-# تعيين Webhook عند أول تشغيل
-@app.before_first_request
-def set_webhook():
-    telegram_app.bot.set_webhook(url=WEBHOOK_URL)
-
 # تشغيل التطبيق
 if __name__ == "__main__":
+    import asyncio
+
+    # تعيين Webhook قبل بدء التطبيق
+    async def set_webhook():
+        await telegram_app.bot.set_webhook(url=WEBHOOK_URL)
+
+    asyncio.run(set_webhook())
     app.run(port=8000, host="0.0.0.0")
